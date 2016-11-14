@@ -1,0 +1,68 @@
+<html>
+
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
+</head>
+
+<body>
+
+	<video id="video" controls="controls">
+		<source src="Foosball.mp4" type="video/mp4">
+	</video>
+	
+	<!-- 
+	        <button id="speed">Fast Forward</button>
+	        <button id="negative">Rewind</button>
+	        <button id="reverse">Reverse</button>
+ -->
+ 
+ <button id="viewHighlights">View Highlights</button>
+
+
+<script>
+
+var video = document.getElementById('video');
+var intervalRewind;
+$(video).on('play',function(){
+    video.playbackRate = 1.0;
+    clearInterval(intervalRewind);
+});
+$(video).on('pause',function(){
+    video.playbackRate = 1.0;
+    clearInterval(intervalRewind);
+});
+
+$("#viewHighlights").click(function() {
+	var i = 0;
+	
+	var highlights = [{time:20, duration:4},{time:33, duration:3},{time:41, duration:4}];
+	//while (i < highlights.length) {
+		interval = setInterval(function() {
+			if (i >= highlights.length) {
+				clearInterval(interval);
+			}
+			
+			var currentTime = video.currentTime;
+			if (currentTime < highlights[i].time) {
+				video.playbackRate = 2;
+			}
+			else if (currentTime < (highlights[i].time + highlights[i].duration)) {
+				video.playbackRate = .5;
+			}
+			else {
+				i++;
+			}
+		}, 200);
+		
+	//}
+})
+
+
+</script>
+
+
+
+</body>
+
+</html>
