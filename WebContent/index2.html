@@ -18,19 +18,20 @@
  -->
  
  <button id="viewHighlights">View Highlights</button>
-
+ 
+ <p>Space to slow down, Alt to speed up, left arrow to jump back</p>
 
 <script>
 
 var video = document.getElementById('video');
 var intervalRewind;
+
+
 $(video).on('play',function(){
     video.playbackRate = 1.0;
-    clearInterval(intervalRewind);
 });
 $(video).on('pause',function(){
     video.playbackRate = 1.0;
-    clearInterval(intervalRewind);
 });
 
 $("#viewHighlights").click(function() {
@@ -54,10 +55,46 @@ $("#viewHighlights").click(function() {
 				i++;
 			}
 		}, 200);
-		
-	//}
-})
+});
 
+
+$(document).keydown(function(e){
+	console.log(e.keyCode);
+	var repeat = 4;
+	
+	
+    switch(e.keyCode) {
+    case 18:
+    	if (video.playbackRate != 2) {
+    		video.playbackRate = 2;
+    		toggleFast = false;
+    	}
+    	else {
+    		video.playbackRate = 1;
+    		toggleFast = true;
+    	}
+    	break;
+    case 32: 
+    	if (video.playbackRate != .5) {
+    		video.playbackRate = .5;
+    		toggleSlow = false;
+    	}
+    	else {
+    		video.playbackRate = 1;
+    		toggleSlow = true;
+    	}
+    	break;
+    case 37: 
+    	video.playbackRate = .5;
+    	video.currentTime = video.currentTime - repeat;
+    	setTimeout(function() {
+    		video.playbackRate = 1;
+    	}, (repeat * 1000))
+ 
+    	break;
+    }
+    
+});
 
 </script>
 
