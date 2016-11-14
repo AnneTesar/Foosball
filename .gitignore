@@ -1,0 +1,50 @@
+*.pydevproject
+.idea
+.metadata
+.gradle
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+
+.recommenders
+/Java/Servers/ 
+
+# Eclipse Core
+.project
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# CDT-specific
+.cproject
+
+# JDT-specific (Eclipse Java Development Tools)
+.classpath
+
+# Java annotation processor (APT)
+.factorypath
+
+# PDT-specific
+.buildpath
+
+# sbteclipse plugin
+.target
+
+# TeXlipse plugin
+.texlipse
+Java/Servers/Tomcat v8.0 Server at localhost-config/catalina.policy
+Java/Servers/Tomcat v8.0 Server at localhost-config/catalina.properties
+Java/Servers/Tomcat v8.0 Server at localhost-config/context.xml
+Java/Servers/Tomcat v8.0 Server at localhost-config/server.xml
+Java/Servers/Tomcat v8.0 Server at localhost-config/tomcat-users.xml
+Java/Servers/Tomcat v8.0 Server at localhost-config/web.xml
+Java/Face_Recognition/WebContent/META-INF/MANIFEST.MF
