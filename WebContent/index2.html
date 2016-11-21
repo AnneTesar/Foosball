@@ -8,7 +8,7 @@
 <body>
 
 	<video id="video" controls="controls">
-		<source src="Foosball.mp4" type="video/mp4">
+		<source id="video-source" src="Foosball.mp4" type="video/avi" ></source>
 	</video>
 	
 	<!-- 
@@ -24,7 +24,10 @@
 <script>
 
 var video = document.getElementById('video');
+var source = document.getElementById('video-source');
 var intervalRewind;
+
+var files = getFiles();
 
 
 $(video).on('play',function(){
@@ -93,8 +96,40 @@ $(document).keydown(function(e){
  
     	break;
     }
+});  
     
-});
+    
+function getFiles() {
+	
+	$.ajax({type:"POST",
+			url: "videos.php",
+			data: "",  
+			success: function(data, success) { 
+				var myObj = $.parseJSON(data);
+				console.log(myObj);
+			
+				video.pause();
+				
+				source.src = '/output/' + myObj[2];
+				console.log(source.src);
+				
+				video.load();
+				//video.play();
+				/*
+				var vid = new Element('video', { 'autoplay': 'autoplay', 'controls': 'controls' });
+				var src = new Element('source', { 'src': 'video.ogg', 'type': 'video/ogg' });
+
+				vid.update(src);
+				src.insert({ before: new Element('source', { 'src': 'video.mp4', 'type': 'video/mp4' }) });
+
+				$('container_div').update(vid);
+				*/
+			}
+	}); 
+}
+    
+    
+
 
 </script>
 
