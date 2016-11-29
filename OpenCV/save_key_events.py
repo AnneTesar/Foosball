@@ -16,12 +16,10 @@ import cv2
 ap = argparse.ArgumentParser()
 ap.add_argument("-o", "--output", required=True,
 	help="path to output directory")
-ap.add_argument("-p", "--picamera", type=int, default=2,
-	help="whether or not the Raspberry Pi camera should be used")
-ap.add_argument("-f", "--fps", type=int, default=20,
+ap.add_argument("-f", "--fps", type=int, default=57,
 	help="FPS of output video")
 ap.add_argument("-c", "--codec", type=str, default=('i', 'Y', 'U', 'V'),
-	help="codec of output video")
+	help="codec of output video") 
 ap.add_argument("-b", "--buffer-size", type=int, default=32,
 	help="buffer size of video clip writer")
 args = vars(ap.parse_args())
@@ -29,8 +27,7 @@ args = vars(ap.parse_args())
 # initialize the video stream and allow the camera sensor to
 # warmup
 print("[INFO] warming up camera...")
-#vs = VideoStream(usePiCamera=args["picamera"] > 0).start()
-vs = VideoStream(2).start();
+vs = VideoStream(0).start();
 time.sleep(2.0)
 
 # define the lower and upper boundaries of the "green" ball in
@@ -44,7 +41,8 @@ pts = deque(maxlen=args["buffer_size"])
 counter = 0
 (dX, dY) = (0, 0)
 direction = ""
-
+highlights = [0]
+highlight_duration = 4
 # initialize key clip writer and the consecutive number of
 # frames that have *not* contained any action
 kcw = KeyClipWriter(bufSize=args["buffer_size"])
@@ -52,6 +50,7 @@ consecFrames = 0
 
 # keep looping
 while True:
+        highlight = False;
 	# grab the current frame, resize it, and initialize a
 	# boolean used to indicate if the consecutive frames
 	# counter should be updated
@@ -103,6 +102,9 @@ while True:
 					timestamp.strftime("%Y%m%d-%H%M%S"))
 				kcw.start(p, cv2.cv.CV_FOURCC(*args["codec"]),
 					args["fps"])
+				print("I'm recording now!")
+				#START TIMER HERE
+				time_start = time.time();
 
 	# otherwise, no action has taken place in this frame, so
 	# increment the number of consecutive frames that contain
@@ -119,14 +121,18 @@ while True:
 
 		# check to see if enough points have been accumulated in
 		# the buffer
-		if counter >= 10 and i == 1 and pts[-10] is not None:
+		if counter >= 10 and i == 10 and pts[i-10] is not None:
 			# compute the difference between the x and y
 			# coordinates and re-initialize the direction
 			# text variables
-			dX = pts[-10][0] - pts[i][0]
-			dY = pts[-10][1] - pts[i][1]
+			dX = pts[i-10][0] - pts[i][0]
+			dY = pts[i-10][1] - pts[i][1]
 			(dirX, dirY) = ("", "")
 
+                        if np.abs(dX) > 300 or np.abs(dY) > 300:
+                                print("fast movement");
+                                highlight = True;
+                                
 			# ensure there is significant movement in the
 			# x-direction
 			if np.abs(dX) > 20:
@@ -158,6 +164,13 @@ while True:
 		(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
 		0.35, (0, 0, 255), 1)
 
+        if (highlight):
+                #THIS TIME IS A HIGHLIGHT
+                #only add to highlights if the last highlight was a while ago
+                #TODO get rid of 0, or handle empty array, or something.
+                this_highlight = time.time() - time_start
+                if (this_highlight > highlights[-1] + highlight_duration):
+                        highlights.append(time.time() - time_start)
 
 	# update the key frame clip buffer
 	kcw.update(frame)
@@ -165,13 +178,18 @@ while True:
 	# if we are recording and reached a threshold on consecutive
 	# number of frames with no action, stop recording the clip
 	if kcw.recording and consecFrames == args["buffer_size"]:
-                print("recording reached max buffer size")
+                print("Stopped seeing ojbect")
 		kcw.finish()
+		#STOP THE TIMER, RESET IT, WHATEVER
+		time_stop = time.time()
+		video_length = time_stop - time_start;
+		print(video_length)
+		print ["%0.2f" % i for i in highlights]
 
 	# show the frame
 	cv2.imshow("Frame", frame)
 	key = cv2.waitKey(1) & 0xFF
-	#counter += 1
+	counter += 1
 
 	# if the `q` key was pressed, break from the loop
 	if key == ord("q"):
@@ -181,7 +199,9 @@ while True:
 # if we are in the middle of recording a clip, wrap it up
 if kcw.recording:
 	kcw.finish()
+
 print ("all done")
+
 # do a bit of cleanup
 vs.stop()
 cv2.destroyAllWindows()
