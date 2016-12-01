@@ -11,29 +11,31 @@ import datetime
 import imutils
 import time
 import cv2
+import ffmpy
+import json
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-o", "--output", required=True,
 	help="path to output directory")
-ap.add_argument("-f", "--fps", type=int, default=57,
+ap.add_argument("-f", "--fps", type=int, default=30,
 	help="FPS of output video")
-ap.add_argument("-c", "--codec", type=str, default=('i', 'Y', 'U', 'V'),
+ap.add_argument("-c", "--codec", type=str, default=('I', 'Y', 'U', 'V'),
 	help="codec of output video") 
-ap.add_argument("-b", "--buffer-size", type=int, default=32,
+ap.add_argument("-b", "--buffer-size", type=int, default=32, #change this for longer clips i think
 	help="buffer size of video clip writer")
 args = vars(ap.parse_args())
 
 # initialize the video stream and allow the camera sensor to
 # warmup
 print("[INFO] warming up camera...")
-vs = VideoStream(0).start();
+vs = VideoStream(2).start();
 time.sleep(2.0)
 
 # define the lower and upper boundaries of the "green" ball in
 # the HSV color space
-greenLower = (40, 124, 40)
-greenUpper = (59, 255, 255)
+greenLower = (0, 0, 100)
+greenUpper = (12, 255, 255)
 
 # initialize the list of tracked points, the frame counter,
 # and the coordinate deltas
@@ -41,8 +43,14 @@ pts = deque(maxlen=args["buffer_size"])
 counter = 0
 (dX, dY) = (0, 0)
 direction = ""
-highlights = [0]
-highlight_duration = 4
+
+#class HighlightClass:
+ #  def __init__(self, time, duration):
+  #    self.time = time
+   #   self.duration = duration
+highlight_duration = 4;
+
+
 # initialize key clip writer and the consecutive number of
 # frames that have *not* contained any action
 kcw = KeyClipWriter(bufSize=args["buffer_size"])
@@ -50,7 +58,7 @@ consecFrames = 0
 
 # keep looping
 while True:
-        highlight = False;
+        is_highlight = False;
 	# grab the current frame, resize it, and initialize a
 	# boolean used to indicate if the consecutive frames
 	# counter should be updated
@@ -86,7 +94,7 @@ while True:
                 center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
 		# only proceed if the redius meets a minimum size
-		if radius > 10:
+		if radius > 5:
 			# reset the number of consecutive frames with
 			# *no* action to zero and draw the circle
 			# surrounding the object
@@ -98,13 +106,16 @@ while True:
 			# if we are not already recording, start recording
 			if not kcw.recording:
 				timestamp = datetime.datetime.now()
+				video_name = timestamp.strftime("%Y%m%d-%H%M%S");
 				p = "{}/{}.avi".format(args["output"],
-					timestamp.strftime("%Y%m%d-%H%M%S"))
+					video_name)
 				kcw.start(p, cv2.cv.CV_FOURCC(*args["codec"]),
 					args["fps"])
 				print("I'm recording now!")
 				#START TIMER HERE
 				time_start = time.time();
+				#highlights = [HighlightClass(0, 1)]
+				highlights = [0]
 
 	# otherwise, no action has taken place in this frame, so
 	# increment the number of consecutive frames that contain
@@ -129,9 +140,16 @@ while True:
 			dY = pts[i-10][1] - pts[i][1]
 			(dirX, dirY) = ("", "")
 
-                        if np.abs(dX) > 300 or np.abs(dY) > 300:
+                        if np.abs(dX) > 100 or np.abs(dY) > 100:
                                 print("fast movement");
-                                highlight = True;
+                                is_highlight = True;
+
+                        #if shot on goal
+                                #where it's heading, is that the goal?
+
+                        #goal scored
+                                #was headed toward the goal
+                                #and now I don't see it anymore
                                 
 			# ensure there is significant movement in the
 			# x-direction
@@ -164,11 +182,17 @@ while True:
 		(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
 		0.35, (0, 0, 255), 1)
 
-        if (highlight):
+        if (is_highlight):
                 #THIS TIME IS A HIGHLIGHT
                 #only add to highlights if the last highlight was a while ago
                 #TODO get rid of 0, or handle empty array, or something.
                 this_highlight = time.time() - time_start
+                #print (highlights[-1].time)
+                #if it's only one away from time+duration of -1, add 1 to duration
+                #if it's a separate highlight or just more of the same one?
+                #if (this_highlight > highlights[-1].time + highlights[-1].duration) :
+                 #       new_highlight = HighlightClass(this_highlight, 1)
+                  #      highlights.append(new_highlight)
                 if (this_highlight > highlights[-1] + highlight_duration):
                         highlights.append(time.time() - time_start)
 
@@ -180,11 +204,17 @@ while True:
 	if kcw.recording and consecFrames == args["buffer_size"]:
                 print("Stopped seeing ojbect")
 		kcw.finish()
+		ff = ffmpy.FFmpeg(
+                        inputs={args["output"]+ '/' + video_name + '.avi': None},
+                        outputs={'C:/UwAmp/www/output_video/' + video_name + '.mp4': None})
+                ff.run()
 		#STOP THE TIMER, RESET IT, WHATEVER
 		time_stop = time.time()
 		video_length = time_stop - time_start;
 		print(video_length)
-		print ["%0.2f" % i for i in highlights]
+		#Write the highlights to a text file
+		with open('C:/UwAmp/www/output_highlights/' + video_name + '.json', 'w') as outfile:
+                    json.dump(highlights, outfile)
 
 	# show the frame
 	cv2.imshow("Frame", frame)
@@ -205,4 +235,3 @@ print ("all done")
 # do a bit of cleanup
 vs.stop()
 cv2.destroyAllWindows()
-

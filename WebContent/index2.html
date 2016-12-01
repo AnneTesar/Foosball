@@ -8,7 +8,7 @@
 <body>
 
 	<video id="video" controls="controls">
-		<source id="video-source" src="Foosball.mp4" type="video/avi" ></source>
+		<source id="video-source"  type="video/mp4" ></source>
 	</video>
 	
 	<!-- 
@@ -27,7 +27,9 @@ var video = document.getElementById('video');
 var source = document.getElementById('video-source');
 var intervalRewind;
 
-var files = getFiles();
+previous_video = "";
+getFiles();
+setInterval(getFiles, 10000);
 
 
 $(video).on('play',function(){
@@ -38,28 +40,35 @@ $(video).on('pause',function(){
 });
 
 $("#viewHighlights").click(function() {
-	var i = 0;
+	playWithHighlights();
 	
-	var highlights = [{time:20, duration:4},{time:33, duration:3},{time:41, duration:4}];
+});
+
+
+function playWithHighlights(h) {
+	var i = 0;
+	video.play();
+	//var highlights = [{time:20, duration:4},{time:33, duration:3},{time:41, duration:4}];
 	//while (i < highlights.length) {
+	console.log(h);
 		interval = setInterval(function() {
-			if (i >= highlights.length) {
+			if (i >= h.length) {
 				clearInterval(interval);
 			}
 			
 			var currentTime = video.currentTime;
-			if (currentTime < highlights[i].time) {
+			if (currentTime < h[i]) {
 				video.playbackRate = 2;
 			}
-			else if (currentTime < (highlights[i].time + highlights[i].duration)) {
+			else if (currentTime < (h[i] + 3)) {
 				video.playbackRate = .5;
 			}
 			else {
 				i++;
+				console.log("incrementing i to: " + i );
 			}
 		}, 200);
-});
-
+}
 
 $(document).keydown(function(e){
 	console.log(e.keyCode);
@@ -100,30 +109,37 @@ $(document).keydown(function(e){
     
     
 function getFiles() {
-	
+	console.log("called get files");
 	$.ajax({type:"POST",
 			url: "videos.php",
 			data: "",  
 			success: function(data, success) { 
+				//console.log(data);
 				var myObj = $.parseJSON(data);
-				console.log(myObj);
-			
-				video.pause();
+				//console.log(myObj);	
+				videos = myObj.videos;
+				highlights = myObj.highlights;
 				
-				source.src = '/output/' + myObj[2];
-				console.log(source.src);
+				last_video = videos[videos.length - 1];
+				if (previous_video != last_video) {
+					video.pause();
+					source.src = '/output_video/' + last_video;
+					previous_video = last_video;
+					video.load();
+					
+					//find highlight file that matches?
+					//get latest highlight file
+					$.getJSON('/output_highlights/' + highlights[highlights.length-1], function(json) {
+    					//console.log(json); // this will show the info it in firebug console
+						//playWithHighlights(json);
+						video.play();
+					});
+					
+					
+				}
 				
-				video.load();
-				//video.play();
-				/*
-				var vid = new Element('video', { 'autoplay': 'autoplay', 'controls': 'controls' });
-				var src = new Element('source', { 'src': 'video.ogg', 'type': 'video/ogg' });
-
-				vid.update(src);
-				src.insert({ before: new Element('source', { 'src': 'video.mp4', 'type': 'video/mp4' }) });
-
-				$('container_div').update(vid);
-				*/
+				
+				
 			}
 	}); 
 }

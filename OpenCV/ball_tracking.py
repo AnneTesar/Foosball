@@ -20,8 +20,8 @@ args = vars(ap.parse_args())
 # define the lower and upper boundaries of the "green"
 # ball in the HSV color space, then initialize the
 # list of tracked points
-greenLower = (0, 133, 218)
-greenUpper = (9, 185, 255)
+greenLower = (0, 0, 100)
+greenUpper = (12, 255, 255)
 pts = deque(maxlen=args["buffer"])
 
 fourcc = cv2.cv.CV_FOURCC('i', 'Y', 'U', 'V')
@@ -30,7 +30,7 @@ out = cv2.VideoWriter('output.avi',fourcc, 20.0, (640,480)) #specify fps and asp
 # if a video path was not supplied, grab the reference
 # to the webcam
 if not args.get("video", False):
-	camera = cv2.VideoCapture(0) #use 2 for external webcam
+	camera = cv2.VideoCapture(2) #use 2 for external webcam
 
 # otherwise, grab a reference to the video file
 else:
@@ -103,7 +103,15 @@ while True:
 		# draw the connecting lines
 		thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
 		cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
-        print(pts)
+
+        #hopefully this will print the current position to the screen?
+        X = pts[i][0];
+        Y = pts[i][1];
+
+        cv2.putText(frame, "x: {}, y: {}".format(X, Y),
+		(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
+		0.35, (0, 0, 255), 1)
+		
 	# show the frame to our screen
 	cv2.imshow("Frame", frame)
 	key = cv2.waitKey(1) & 0xFF
