@@ -24,16 +24,19 @@ ap.add_argument("-c", "--codec", type=str, default=('I', 'Y', 'U', 'V'),
 	help="codec of output video") 
 ap.add_argument("-b", "--buffer-size", type=int, default=32, #change this for longer clips i think
 	help="buffer size of video clip writer")
+ap.add_argument("-d", "--draw", type=int, default=0,
+        help="1 to draw the line")
 args = vars(ap.parse_args())
 
 # initialize the video stream and allow the camera sensor to
 # warmup
 print("[INFO] warming up camera...")
-vs = VideoStream(2).start();
+vs = VideoStream(2).start(); #0 for laptop webcam. 2 for USB webcam
 time.sleep(2.0)
 
 # define the lower and upper boundaries of the "green" ball in
 # the HSV color space
+# use range-detect to recalibrate for these
 greenLower = (0, 0, 100)
 greenUpper = (12, 255, 255)
 
@@ -44,6 +47,8 @@ counter = 0
 (dX, dY) = (0, 0)
 direction = ""
 
+# TODO add "duration" to highlights. Currently only passes start time
+# and assumes a constant time for highlight duration.  
 #class HighlightClass:
  #  def __init__(self, time, duration):
   #    self.time = time
@@ -140,9 +145,11 @@ while True:
 			dY = pts[i-10][1] - pts[i][1]
 			(dirX, dirY) = ("", "")
 
-                        if np.abs(dX) > 100 or np.abs(dY) > 100:
-                                print("fast movement");
-                                is_highlight = True;
+			dX_prev = pts[i-20][0] - pts[i][0]
+
+                        #if np.abs(dX) > 100 or np.abs(dY) > 100:
+                                #print("fast movement");
+                                #is_highlight = True;
 
                         #if shot on goal
                                 #where it's heading, is that the goal?
@@ -150,42 +157,31 @@ while True:
                         #goal scored
                                 #was headed toward the goal
                                 #and now I don't see it anymore
-                                
-			# ensure there is significant movement in the
-			# x-direction
-			if np.abs(dX) > 20:
-				dirX = "East" if np.sign(dX) == 1 else "West"
 
-			# ensure there is significant movement in the
-			# y-direction
-			if np.abs(dY) > 20:
-				dirY = "North" if np.sign(dY) == 1 else "South"
+                        if (dX < -400) :
+                                print("shot across table, left");
 
-			# handle when both directions are non-empty
-			if dirX != "" and dirY != "":
-				direction = "{}-{}".format(dirY, dirX)
+                        if (dX > 400) :
+                                print("shot across table, right");
 
-			# otherwise, only one direction is non-empty
-			else:
-				direction = dirX if dirX != "" else dirY
+                        if ((dX_prev ^ dX) < 0):
+                                print("sign changed on dX");
+                        
 
-		# otherwise, compute the thickness of the line and
-		# draw the connecting lines
-		thickness = int(np.sqrt(args["buffer_size"] / float(i + 1)) * 2.5)
-		cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
 
 	# show the movement deltas and the direction of movement on
 	# the frame
-	cv2.putText(frame, direction, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-		0.65, (0, 0, 255), 3)
-	cv2.putText(frame, "dx: {}, dy: {}".format(dX, dY),
-		(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-		0.35, (0, 0, 255), 1)
+	if args["draw"]:
+                thickness = int(np.sqrt(args["buffer_size"] / float(i + 1)) * 2.5)
+		cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+                cv2.putText(frame, "dx: {}, dy: {}".format(dX, dY),
+                        (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.35, (0, 0, 255), 1)
 
         if (is_highlight):
-                #THIS TIME IS A HIGHLIGHT
-                #only add to highlights if the last highlight was a while ago
-                #TODO get rid of 0, or handle empty array, or something.
+                # THIS TIME IS A HIGHLIGHT
+                # only add to highlights if the last highlight was a while ago
+                # TODO get rid of 0, or handle empty array, or something.
                 this_highlight = time.time() - time_start
                 #print (highlights[-1].time)
                 #if it's only one away from time+duration of -1, add 1 to duration
@@ -203,15 +199,21 @@ while True:
 	# number of frames with no action, stop recording the clip
 	if kcw.recording and consecFrames == args["buffer_size"]:
                 print("Stopped seeing ojbect")
+                print("dx: " + dX + ", dy: " + dY); #TODO check this - can i use it to determine who scored?
 		kcw.finish()
+		
+		# Get the output .avi, convert it to an .mp4 and put it where
+		# the UI knows to look for it. 
 		ff = ffmpy.FFmpeg(
                         inputs={args["output"]+ '/' + video_name + '.avi': None},
                         outputs={'C:/UwAmp/www/output_video/' + video_name + '.mp4': None})
                 ff.run()
+                
 		#STOP THE TIMER, RESET IT, WHATEVER
 		time_stop = time.time()
 		video_length = time_stop - time_start;
-		print(video_length)
+		print(video_length) #TODO adjust FPS so this length actually matches the video length
+		
 		#Write the highlights to a text file
 		with open('C:/UwAmp/www/output_highlights/' + video_name + '.json', 'w') as outfile:
                     json.dump(highlights, outfile)

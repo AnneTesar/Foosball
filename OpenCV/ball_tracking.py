@@ -105,10 +105,9 @@ while True:
 		cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
 
         #hopefully this will print the current position to the screen?
-        X = pts[i][0];
-        Y = pts[i][1];
+        position = pts[-1];
 
-        cv2.putText(frame, "x: {}, y: {}".format(X, Y),
+        cv2.putText(frame, "position: {}".format(position),
 		(10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
 		0.35, (0, 0, 255), 1)
 		
