@@ -13,17 +13,16 @@ import time
 import cv2
 import ffmpy
 import json
-import math
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-o", "--output", type=str, default="output",
 	help="path to output directory")
-ap.add_argument("-f", "--fps", type=int, default=40, #25-30
+ap.add_argument("-f", "--fps", type=int, default=32,
 	help="FPS of output video")
 ap.add_argument("-c", "--codec", type=str, default=('I', 'Y', 'U', 'V'),
 	help="codec of output video") 
-ap.add_argument("-b", "--buffer-size", type=int, default=120, #change this for longer clips i think
+ap.add_argument("-b", "--buffer-size", type=int, default=150, #change this for longer clips i think
 	help="buffer size of video clip writer")
 ap.add_argument("-d", "--draw", type=int, default=0,
         help="1 to draw the line")
@@ -55,11 +54,9 @@ direction = ""
   #    self.time = time
    #   self.duration = duration
 highlight_duration = 4;
-is_highlight = False;
 state = "";
 state_prev = "";
 state_count = 0;
-
 
 # initialize key clip writer and the consecutive number of
 # frames that have *not* contained any action
@@ -68,7 +65,7 @@ consecFrames = 0
 
 # keep looping
 while True:
-        
+        is_highlight = False;
 	# grab the current frame, resize it, and initialize a
 	# boolean used to indicate if the consecutive frames
 	# counter should be updated
@@ -119,17 +116,13 @@ while True:
 				video_name = timestamp.strftime("%Y%m%d-%H%M%S");
 				p = "{}/{}.avi".format(args["output"],
 					video_name)
-				kcw.start(p, cv2.cv.CV_FOURCC(*args["codec"]),
-					args["fps"])
-				print("I'm recording now!")
+				#kcw.start(p, cv2.cv.CV_FOURCC(*args["codec"]),
+					#args["fps"])
+				#print("I'm recording now!")
 				#START TIMER HERE
 				time_start = time.time();
 				#highlights = [HighlightClass(0, 1)]
-				highlights = []
-				#highlightsJson = '[{"time":0, "duration":1}, {"time":1, "duration":1}]'
-				#highlightsPython = json.loads(highlightsJson)
-				#highlightsPython.append({"time":3, "duration":1});
-				#print highlightsPython[2]['time']
+				highlights = [0]
 
 	# otherwise, no action has taken place in this frame, so
 	# increment the number of consecutive frames that contain
@@ -166,80 +159,58 @@ while True:
                         #goal scored
                                 #was headed toward the goal
                                 #and now I don't see it anymore
-                        if (kcw.recording) :
-                                is_highlight = False;
-                                state = "none";
+                        #if (kcw.recording) :
+                        state = "none";
                                 
-                                center_x = 290;
-                                center_y = 220;
+                        center_x = 290;
+                        center_y = 220;
 
 
-                                y_min_right = 160;
-                                y_max_right = 265;
-                                x_goal_right = 545;
+                        y_min_right = 165;
+                        y_max_right = 265;
+                        x_goal_right = 545;
 
-                                y_min_left = 170;
-                                y_max_left = 265;
-                                x_goal_left = 30;
-                                
-                                x_i = pts[i][0];
-                                y_i = pts[i][1];
-                                #m = NULL;
-                                
-                               
-                                if (abs(dX) > 10): #just to make sure we're not diving by 0 for slope..
-                                        m = dY / dX;
-                                        
-                                        calc_right = ((x_goal_right - x_i) * m) + y_i;
-                                        if ((x_i > center_x) and (dX > 0) and (y_min_right < calc_right) and (calc_right < y_max_right)) :
-                                                print("SHOT ON GOAL, RIGHT");
-                                                state = "SOG Right";
-                                                is_highlight = True;
-
-                                        calc_left = ((x_goal_left - x_i) * m) + y_i;
-                                        if ((x_i < center_y) and (dX < 0) and (y_min_left < calc_left) and (calc_left < y_max_left)) :
-                                                print("SHOT ON GOAL, LEFT");
-                                                state = "SOG Left";
-                                                is_highlight = True;
-
-                                        tol = 0;
-                                        if ((x_i < (x_goal_left + tol)) and (y_i > (y_min_left - tol)) and (y_i < (y_max_left + tol))) :
-                                                state = "close to left goal!"
-                                                is_highlight = True;
-                                        if ((x_i > (x_goal_right - tol)) and (y_i > (y_min_right - tol)) and (y_i < (y_max_right + tol))) :
-                                                state = "close to right goal!"
-                                                is_highlight = True;
- 
-
-                                #something about tolercances - has to be a highlight
-                                                #for a certain legnth of time, has to
-                                                #be moving a minimum speed, etc.
-                                                #count the times i was that state, min to be highlight
-                                #dribble to self getting picked as shot on goal? 
-
-                                #if (dX < -400) :
-                                        #print("shot across table, left");
-                                        #print("dX_prev: " + str(dX_prev) + " dX: " + str(dX));
-
-                                #if (dX > 400) :
-                                        #print("shot across table, right");
-
-                                
-                        #if ((dX_prev ^ dX) < 0):
-                         #       print("sign changed on dX");
+                        y_min_left = 170;
+                        y_max_left = 270;
+                        x_goal_left = 30;
                         
+                        x_i = pts[i][0];
+                        y_i = pts[i][1];
+                        #m = NULL;
+                        
+                               
+                        if (abs(dX) > 10): #just to make sure we're not diving by 0 for slope..
+                                m = dY / dX;
+                                
+                                calc_right = ((x_goal_right - x_i) * m) + y_i;
+                                if ((x_i > center_x) and (dX > 0) and (y_min_right < calc_right) and (calc_right < y_max_right)) :
+                                        state = "SOG Right";
 
+                                calc_left = ((x_goal_left - x_i) * m) + y_i;
+                                if ((x_i < center_y) and (dX < -0) and (y_min_left < calc_left) and (calc_left < y_max_left)) :
+                                        state = "SOG Left";
+                        
+                        #if (abs(dX_prev) - abs(dX) > 200) :
+                         #       print("sicc block beyotch");
+                                
+                        #if (dX < -400) :
+                         #       print("shot across table, left");
+                                #print("dX_prev: " + str(dX_prev) + " dX: " + str(dX));
 
-                # show the movement deltas and the direction of movement on
-                # the frame
-                if args["draw"]:
-                        thickness = int(np.sqrt(args["buffer_size"] / float(i + 1)) * 2.5)
-                        cv2.putText(frame, state, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.65, (0, 0, 255), 3)
-                        cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
-                        cv2.putText(frame, "dx: {}, dy: {}".format(dX, dY),
-                                (10, frame.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX,
-                                0.35, (0, 0, 255), 1)
+                        #if (dX > 400) :
+                         #       print("shot across table, right");
+
+                        
+                        #if ((dX_prev ^ dX) < 0):
+                                #state = "sign changed on dX";
+                        tol = 0;
+                        if ((x_i < (x_goal_left + tol)) and (y_i > (y_min_left - tol)) and (y_i < (y_max_left + tol))) :
+                                state = "close to left goal!"
+                        if ((x_i > (x_goal_right - tol)) and (y_i > (y_min_right - tol)) and (y_i < (y_max_right + tol))) :
+                                state = "close to right goal!"
+
+                        print(state);
+ 
 
         if (is_highlight):
                 # THIS TIME IS A HIGHLIGHT
@@ -249,52 +220,37 @@ while True:
                         highlights.append({'time':this_highlight, 'duration':3, 'state':state})
                 elif (this_highlight > highlights[last_index]['time'] + highlights[last_index]['duration']) :
                         highlights.append({'time':this_highlight, 'duration':3, 'state':state})
-                ##elif (this_highlight > highlights[last_index]['time']):
-                  #             highlights[last_index]['duration'] +=1
-                   #     elif (this_highlight > highlights[last_index]['time'] + highlights[last_index]['duration']) :
-                    #            #make new entry
-                     #           highlights.append({'time':time.time() - time_start, 'duation':1})
-        
+  
 	# update the key frame clip buffer
-	kcw.update(frame)
+	#kcw.update(frame)
 
 	# if we are recording and reached a threshold on consecutive
 	# number of frames with no action, stop recording the clip
-	if kcw.recording and consecFrames == args["buffer_size"]:
-                print("Stopped seeing ojbect")
-                print("dx: " + str(dX) + ", dy: " + str(dY)); #TODO check this - can i use it to determine who scored?
-		kcw.finish()
+	if consecFrames == args["buffer_size"]:
+         #       print("Stopped seeing ojbect")
+          #      print("dx: " + str(dX) + ", dy: " + str(dY)); #TODO check this - can i use it to determine who scored?
+	#	kcw.finish()
 
-                scorer = 0;
-                if (dX > 0):
-                        if (state == "SOG Right"):
-                                print("i am positive ");
+                if ((dX > 0) and (state == "SOG Right")):
                         print ("white scored");
-                        scorer = 1;
-                elif (dX < 0):
-                        if (state == "SOG Left"):
-                                print("i am positive ");
+                elif ((dX < 0) and (state == "SOG Left")):
                         print ("blue scored");
-                        scorer = 2;
-                else :
-                        print ("i don't know who scored");
 		
 		# Get the output .avi, convert it to an .mp4 and put it where
 		# the UI knows to look for it. 
-		ff = ffmpy.FFmpeg(
-                        inputs={args["output"]+ '/' + video_name + '.avi': None},
-                        outputs={'C:/UwAmp/www/output_video/' + video_name + '.mp4': None})
-                ff.run()
+	#	ff = ffmpy.FFmpeg(
+         #               inputs={args["output"]+ '/' + video_name + '.avi': None},
+          #              outputs={'C:/UwAmp/www/output_video/' + video_name + '.mp4': None})
+           #     ff.run()
                 
 		#STOP THE TIMER, RESET IT, WHATEVER
-		time_stop = time.time()
-		video_length = time_stop - time_start;
-		print(video_length) #TODO adjust FPS so this length actually matches the video length
+		#time_stop = time.time()
+		#video_length = time_stop - time_start;
+		#print(video_length) #TODO adjust FPS so this length actually matches the video length
 		
 		#Write the highlights to a text file
-		all_data = {'highlights': highlights, 'score':scorer, 'actual_time':video_length}
-		with open('C:/UwAmp/www/output_highlights/' + video_name + '.json', 'w') as outfile:
-                    json.dump(all_data, outfile)
+	#	with open('C:/UwAmp/www/output_highlights/' + video_name + '.json', 'w') as outfile:
+         #           json.dump(highlights, outfile)
 
 	# show the frame
 	cv2.imshow("Frame", frame)
