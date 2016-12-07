@@ -43,7 +43,7 @@
  		<div class="col-md-6">
  			<button id="viewHighlights">View Highlights</button>
  
-			<p>Space to slow down, Alt to speed up, left arrow to jump back</p>
+			<p>Ctrl to slow down, Shift to speed up, left arrow to jump back</p>
 		</div>
 		<div class="col-md-3">
 			<h3 id="blue">Blue Scored</h3>
@@ -111,7 +111,8 @@ $("#viewHighlights").click(function() {
 
 
 function playWithHighlights() {
-	var i = 0;
+	video.currentTime = 0;
+	i = 0;
 	video.play(); 
 	console.log(h);
 		interval = setInterval(function() {
@@ -146,7 +147,7 @@ $(document).keydown(function(e){
 	
 	
     switch(e.keyCode) {
-    case 18:
+    case 16:
     	if (video.playbackRate != 2) {
     		video.playbackRate = 2;
     		toggleFast = false;
@@ -156,7 +157,7 @@ $(document).keydown(function(e){
     		toggleFast = true;
     	}
     	break;
-    case 32: 
+    case 17: 
     	if (video.playbackRate != .5) {
     		video.playbackRate = .5;
     		toggleSlow = false;
