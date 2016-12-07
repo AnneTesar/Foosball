@@ -3,30 +3,99 @@
 <html>
 
 <head>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 </head>
 
 <body>
 
-	<video id="video" controls="controls">
-		<source src="Foosball.mp4" type="video/mp4">
-	</video>
+<div ng-app="app" ng-controller="ctrl">
+
+<nav class="navbar navbar-default">
+	  <div class="container-fluid">
+	    <div class="navbar-header">
+	      <a class="navbar-brand" >Foosball</a>
+	    </div>
+	  </div><!-- /.container-fluid -->
+	</nav>
+
+<div class="container-fluid">
+
 	
-	<!-- 
-	        <button id="speed">Fast Forward</button>
-	        <button id="negative">Rewind</button>
-	        <button id="reverse">Reverse</button>
- -->
+	
+	
+	<div class="row">
+		<div class="col-md-6 col-md-offset-3">
+		
+			<video id="video" controls="controls">
+				<source id="video-source"  type="video/mp4" ></source>
+			</video>
+		</div>
+	</div>
+	<br>
+	
+ 	<div class="row">
+		<div class="col-md-3">
+			<h3 id="white">White Scored</h3>
+		</div>
+ 		<div class="col-md-6">
+ 			<button id="viewHighlights">View Highlights</button>
  
- <button id="viewHighlights">View Highlights</button>
- 
- <p>Space to slow down, Alt to speed up, left arrow to jump back</p>
+			<p>Ctrl to slow down, Shift to speed up, left arrow to jump back</p>
+		</div>
+		<div class="col-md-3">
+			<h3 id="blue">Blue Scored</h3>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-md-6 col-md-offset-3">
+			<label>Auto-Refresh: </label>
+			<input type="checkbox" ng-model="select.refresh" ng-change="auto_refresh()">
+			<label>Select Old Video:</label>
+			<select ng-model="select.choice" ng-change="change_video()" >
+				<option ng-repeat="x in video_choices" >{{x}}</option>
+			</select>
+		</div>
+	</div>
+</div>
+</div>
 
 <script>
+var app = angular.module('app', []);
+
+app.controller('ctrl', function($scope) {
+$scope.select = {};
 
 var video = document.getElementById('video');
+var source = document.getElementById('video-source');
 var intervalRewind;
+var adjusted_time = -1;
+
+$scope.video_choices = [];
+
+$("#white").hide();
+$("#blue").hide();
+
+var h;
+
+previous_video = "";
+getFiles();
+
+$scope.auto_refresh = function() {
+	console.log("$scope.select.refresh:" + $scope.select.refresh);
+	if ($scope.select.refresh) {
+		interval = setInterval(getFiles, 10000);
+	}
+	else {
+		clearInterval(interval);
+	}
+}
+//setInterval(getFiles, 20000);
 
 
 $(video).on('play',function(){
@@ -37,28 +106,42 @@ $(video).on('pause',function(){
 });
 
 $("#viewHighlights").click(function() {
-	var i = 0;
+	//reset it somehow?
+	playWithHighlights();
 	
-	var highlights = [{time:20, duration:4},{time:33, duration:3},{time:41, duration:4}];
-	//while (i < highlights.length) {
-		interval = setInterval(function() {
-			if (i >= highlights.length) {
-				clearInterval(interval);
-			}
-			
-			var currentTime = video.currentTime;
-			if (currentTime < highlights[i].time) {
-				video.playbackRate = 2;
-			}
-			else if (currentTime < (highlights[i].time + highlights[i].duration)) {
-				video.playbackRate = .5;
-			}
-			else {
-				i++;
-			}
-		}, 200);
 });
 
+
+function playWithHighlights() {
+	video.currentTime = 0;
+	i = 0;
+	video.play(); 
+	console.log(h);
+		interval = setInterval(function() {
+			if (i >= h.length) {
+				clearInterval(interval);
+				video.playbackRate = 2;
+			}
+			else {
+				var currentTime = video.currentTime;
+				if (currentTime < h[i].time) {
+					console.log("speeding up");
+					video.playbackRate = 2;
+				}
+				else if (currentTime < (h[i].time + h[i].duration)) {
+					console.log("slowing down");
+					video.playbackRate = .5;
+				}
+				
+				
+				else {
+					i++;
+					console.log("incrementing i to: " + i );
+				}
+			}
+			
+		}, 200);
+}
 
 $(document).keydown(function(e){
 	console.log(e.keyCode);
@@ -66,7 +149,7 @@ $(document).keydown(function(e){
 	
 	
     switch(e.keyCode) {
-    case 18:
+    case 16:
     	if (video.playbackRate != 2) {
     		video.playbackRate = 2;
     		toggleFast = false;
@@ -76,7 +159,7 @@ $(document).keydown(function(e){
     		toggleFast = true;
     	}
     	break;
-    case 32: 
+    case 17: 
     	if (video.playbackRate != .5) {
     		video.playbackRate = .5;
     		toggleSlow = false;
@@ -95,6 +178,149 @@ $(document).keydown(function(e){
  
     	break;
     }
+});  
+    
+    
+function getFiles() {
+	console.log("called get files");
+	$.ajax({type:"POST",
+			url: "videos.php",
+			data: "",  
+			success: function(data, success) { 
+				//console.log(data);
+				var myObj = $.parseJSON(data);
+				//console.log(myObj);	
+				videos = myObj.videos;
+				highlights = myObj.highlights;
+				
+				$scope.video_choices = [];
+				for(var i=2; i<videos.length; i++) {
+    				$scope.video_choices.push(videos[i].slice(0, -4));
+				}
+				console.log($scope.video_choices);
+				$scope.$apply();
+				   
+				
+				
+				last_video = videos[videos.length - 1];
+				video_name = last_video.slice(0, -4);
+				
+				if (previous_video != last_video) {
+					video.pause();
+					source.src = '/output_video/' + last_video;
+					console.log("video_name: " + video_name );
+					previous_video = last_video;
+					video.load();
+					video.onloadedmetadata = function() {
+  						console.log('metadata loaded!');
+  						console.log(video.duration);
+						adjusted_time = video.duration;
+					};
+					
+					//find highlight file that matches?
+					//get latest highlight file
+					$.getJSON('/output_highlights/' + video_name + ".json", function(json) {
+    					console.log(json); 
+						scorer = json.score;
+						if (scorer == 1) {
+							console.log("white scored");
+							$("#white").show();
+							$("#blue").hide();
+						}
+						else if (scorer == 2) {
+							console.log("blue scored");
+							$("#blue").show();
+							$("#white").hide();
+						}
+						else {
+							console.log("i'm not sure who scored");
+						}
+						
+						//while (adjusted_time == -1);
+						if (adjusted_time == -1) {
+							setTimeout(function() {
+								var actual_time = json.actual_time;
+								var h_temp = json.highlights;
+								h = [];
+								//console.log("actual: " + actual_time + ", adjusted: " + adjusted_time);
+								for (j = 0; j < h_temp.length; j++) {
+									h.push({'time':((h_temp[j].time / actual_time) * adjusted_time), 'duration':h_temp[j].duration});
+									//console.log("time was " + h_temp[j].time + " but is now " + (h_temp[j].time / actual_time) * adjusted_time);
+								}
+								h.push({'time':(adjusted_time - 4), 'duration':4});
+							
+								playWithHighlights();
+							}, 1000);
+						} 
+	
+						//video.play();
+					});
+					
+					
+				}
+				
+				
+				
+			}
+	}); 
+}
+
+$scope.change_video = function() {
+	video.pause();
+	source.src = '/output_video/' + $scope.select.choice + '.mp4';
+	console.log("video selected: " + $scope.select.choice );
+	previous_video = last_video;
+	video.load();
+	adjusted_time = -1;
+	video.onloadedmetadata = function() {
+		console.log('metadata loaded!');
+		console.log(video.duration);
+		adjusted_time = video.duration;
+	}
+	
+	$.getJSON('/output_highlights/' + $scope.select.choice + ".json", function(json) {
+		console.log(json); 
+		scorer = json.score;
+		if (scorer == 1) {
+			console.log("white scored");
+			$("#white").show();
+			$("#blue").hide();
+		}
+		else if (scorer == 2) {
+			console.log("blue scored");
+			$("#white").hide();
+			$("#blue").show();
+		}
+		else {
+			console.log("i'm not sure who scored");
+			$("#white").hide();
+			$("#blue").hide();
+		}
+		
+		//while (adjusted_time == -1);
+		if (adjusted_time == -1) {
+			setTimeout(function() {
+				var actual_time = json.actual_time;
+				var h_temp = json.highlights;
+				h = [];
+				//console.log("actual: " + actual_time + ", adjusted: " + adjusted_time);
+				for (j = 0; j < h_temp.length; j++) {
+					h.push({'time':((h_temp[j].time / actual_time) * adjusted_time), 'duration':h_temp[j].duration});
+					//console.log("time was " + h_temp[j].time + " but is now " + (h_temp[j].time / actual_time) * adjusted_time);
+				}
+				h.push({'time':(adjusted_time - 4), 'duration':4});
+				
+				console.log("Changed video, new highlights");
+				console.log(h);
+			
+				playWithHighlights();
+			}, 1000);
+		} 
+
+		//video.play();
+	});
+}
+    
     
 });
 
